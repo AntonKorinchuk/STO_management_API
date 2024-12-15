@@ -16,32 +16,33 @@ router = APIRouter(prefix="/cars", tags=["cars"])
 
 @router.post("/", response_model=CarResponse)
 async def create_car(
-        car: CarCreate,
-        db: AsyncSession = Depends(get_async_db),
-        current_user: User = Depends(get_current_user)
+    car: CarCreate,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Create a new car after checking VIN, plate number, and user access.
     """
     vin_check = await db.execute(select(Car).where(Car.vin == car.vin))
-    plate_check = await db.execute(select(Car).where(Car.plate_number == car.plate_number))
+    plate_check = await db.execute(
+        select(Car).where(Car.plate_number == car.plate_number)
+    )
 
     if vin_check.scalar_one_or_none():
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="VIN already exists"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="VIN already exists"
         )
 
     if plate_check.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Plate number already exists"
+            detail="Plate number already exists",
         )
 
-    if car.user_id != current_user.user_id and current_user.role.value != 'admin':
+    if car.user_id != current_user.user_id and current_user.role.value != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only add cars to your own profile"
+            detail="You can only add cars to your own profile",
         )
 
     new_car = Car(
@@ -50,7 +51,7 @@ async def create_car(
         model=car.model,
         year=car.year,
         plate_number=car.plate_number,
-        vin=car.vin
+        vin=car.vin,
     )
 
     db.add(new_car)
@@ -64,19 +65,19 @@ async def create_car(
         model=new_car.model,
         year=new_car.year,
         plate_number=new_car.plate_number,
-        vin=new_car.vin
+        vin=new_car.vin,
     )
 
 
 @router.get("/", response_model=List[CarResponse])
 async def read_cars(
-        db: AsyncSession = Depends(get_async_db),
-        current_user: User = Depends(get_current_user)
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get a list of cars, filtered by user role.
     """
-    if current_user.role.value == 'admin':
+    if current_user.role.value == "admin":
         query = select(Car)
     else:
         query = select(Car).where(Car.user_id == current_user.user_id)
@@ -92,16 +93,17 @@ async def read_cars(
             model=car.model,
             year=car.year,
             plate_number=car.plate_number,
-            vin=car.vin
-        ) for car in cars
+            vin=car.vin,
+        )
+        for car in cars
     ]
 
 
 @router.get("/{car_id}", response_model=CarResponse)
 async def read_car(
-        car_id: int,
-        db: AsyncSession = Depends(get_async_db),
-        current_user: User = Depends(get_current_user)
+    car_id: int,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user),
 ):
     query = select(Car).where(Car.car_id == car_id)
     result = await db.execute(query)
@@ -111,10 +113,10 @@ async def read_car(
         raise HTTPException(status_code=404, detail="Car not found")
 
     # Перевірка прав доступу
-    if car.user_id != current_user.user_id and current_user.role.value != 'admin':
+    if car.user_id != current_user.user_id and current_user.role.value != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to view this car"
+            detail="You don't have permission to view this car",
         )
 
     return CarResponse(
@@ -124,16 +126,16 @@ async def read_car(
         model=car.model,
         year=car.year,
         plate_number=car.plate_number,
-        vin=car.vin
+        vin=car.vin,
     )
 
 
 @router.put("/{car_id}", response_model=CarResponse)
 async def update_car(
-        car_id: int,
-        car_update: CarUpdate,
-        db: AsyncSession = Depends(get_async_db),
-        current_user: User = Depends(get_current_user)
+    car_id: int,
+    car_update: CarUpdate,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Update car details after checking uniqueness of VIN and plate number.
@@ -145,38 +147,34 @@ async def update_car(
     if not car:
         raise HTTPException(status_code=404, detail="Car not found")
 
-    if car.user_id != current_user.user_id and current_user.role.value != 'admin':
+    if car.user_id != current_user.user_id and current_user.role.value != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only update your own cars"
+            detail="You can only update your own cars",
         )
 
     update_data = car_update.dict(exclude_unset=True)
 
-    if 'vin' in update_data:
+    if "vin" in update_data:
         vin_check = await db.execute(
-            select(Car).where(
-                (Car.vin == update_data['vin']) &
-                (Car.car_id != car_id)
-            )
+            select(Car).where((Car.vin == update_data["vin"]) & (Car.car_id != car_id))
         )
         if vin_check.scalar_one_or_none():
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="VIN already exists"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="VIN already exists"
             )
 
-    if 'plate_number' in update_data:
+    if "plate_number" in update_data:
         plate_check = await db.execute(
             select(Car).where(
-                (Car.plate_number == update_data['plate_number']) &
-                (Car.car_id != car_id)
+                (Car.plate_number == update_data["plate_number"])
+                & (Car.car_id != car_id)
             )
         )
         if plate_check.scalar_one_or_none():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Plate number already exists"
+                detail="Plate number already exists",
             )
 
     for key, value in update_data.items():
@@ -192,15 +190,15 @@ async def update_car(
         model=car.model,
         year=car.year,
         plate_number=car.plate_number,
-        vin=car.vin
+        vin=car.vin,
     )
 
 
 @router.delete("/{car_id}")
 async def delete_car(
-        car_id: int,
-        db: AsyncSession = Depends(get_async_db),
-        current_user: User = Depends(get_current_user)
+    car_id: int,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Delete a car if the user is the owner or an admin.
@@ -212,10 +210,10 @@ async def delete_car(
     if not car:
         raise HTTPException(status_code=404, detail="Car not found")
 
-    if car.user_id != current_user.user_id and current_user.role.value != 'admin':
+    if car.user_id != current_user.user_id and current_user.role.value != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only delete your own cars"
+            detail="You can only delete your own cars",
         )
 
     await db.delete(car)

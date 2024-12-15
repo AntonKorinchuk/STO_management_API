@@ -38,4 +38,3 @@ class AppointmentUpdate(BaseModel):
     mechanic_id: Optional[int] = None
     appointment_date: Optional[datetime] = None
     status: Optional[AppointmentStatus] = None
-

@@ -15,7 +15,7 @@ app = FastAPI(
     description="API for car service management",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 # CORS Middleware
@@ -35,14 +35,11 @@ app.include_router(mechanic_router, prefix="/api/v1")
 app.include_router(document_router, prefix="/api/v1")
 app.include_router(car_router, prefix="/api/v1")
 
+
 @app.get("/")
 async def root():
     return {"message": "Welcome to Car Service API"}
 
+
 if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
-    )
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

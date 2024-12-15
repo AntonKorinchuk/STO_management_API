@@ -3,9 +3,11 @@ from typing import Optional
 from enum import Enum
 from datetime import date
 
+
 class MechanicRoleEnum(str, Enum):
     ADMIN = "admin"
     MECHANIC = "mechanic"
+
 
 class MechanicBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
@@ -18,12 +20,12 @@ class MechanicBase(BaseModel):
 class MechanicCreate(MechanicBase):
     password: str = Field(..., min_length=8)
 
-    @validator('birth_date')
+    @validator("birth_date")
     def validate_birth_date(cls, v):
         today = date.today()
         age = today.year - v.year - ((today.month, today.day) < (v.month, v.day))
         if age < 18:
-            raise ValueError("The mechanic must be over 10 years old")
+            raise ValueError("The mechanic must be over 18 years old")
         return v
 
 

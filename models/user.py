@@ -22,4 +22,3 @@ class User(Base):
 
     cars = relationship("Car", back_populates="owner")
     appointments = relationship("Appointment", back_populates="user")
-
