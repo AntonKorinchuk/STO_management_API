@@ -1,8 +1,12 @@
 import asyncio
+import os
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from dotenv import load_dotenv
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+from pydantic import EmailStr
 
 from database import get_async_db
 from models import Mechanic
@@ -20,15 +24,14 @@ from models.user import User
 from crud.user import get_current_user
 from crud.mechanic import get_current_mechanic
 
-# Email sending (async)
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
-from pydantic import EmailStr
+
+load_dotenv()
 
 # Email Configuration
 conf = ConnectionConfig(
-    MAIL_USERNAME="your_username",
-    MAIL_PASSWORD="your_password",
-    MAIL_FROM="your_email@example.com",
+    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
+    MAIL_FROM=os.getenv("MAIL_FROM"),
     MAIL_PORT=587,
     MAIL_SERVER="smtp.gmail.com",
     MAIL_FROM_NAME="Car Service",
@@ -41,7 +44,7 @@ conf = ConnectionConfig(
 
 async def send_appointment_confirmation_email(email: EmailStr, appointment_details: dict):
     """
-    Асинхронна функція для надсилання електронної пошти про підтвердження запису
+    Sends confirmation email with appointment details
     """
     message = MessageSchema(
         subject="Appointment Confirmation",
@@ -71,9 +74,8 @@ async def create_appointment(
         current_user: User = Depends(get_current_user)
 ):
     """
-    Створення нового запису на обслуговування
+    Create a new appointment for car service
     """
-    # Перевірка, чи належить автомобіль поточному користувачу
     car_query = select(Car).where(
         (Car.car_id == appointment.car_id) &
         (Car.user_id == current_user.user_id)
@@ -85,7 +87,6 @@ async def create_appointment(
             detail="You can only book appointments for your own cars"
         )
 
-    # Перевірка наявності послуги
     service_query = select(Service).where(Service.service_id == appointment.service_id)
     service_result = await db.execute(service_query)
     service = service_result.scalar_one_or_none()
@@ -95,7 +96,6 @@ async def create_appointment(
             detail="Service not found"
         )
 
-    # Створення запису
     new_appointment = Appointment(
         user_id=current_user.user_id,
         car_id=appointment.car_id,
@@ -108,7 +108,6 @@ async def create_appointment(
     await db.commit()
     await db.refresh(new_appointment)
 
-    # Асинхронна відправка email (у фоновому режимі)
     asyncio.create_task(send_appointment_confirmation_email(
         current_user.email,
         {
@@ -134,7 +133,7 @@ async def get_user_appointments(
         current_user: User = Depends(get_current_user)
 ):
     """
-    Отримання списку записів поточного користувача
+    Get all appointments for the current user
     """
     query = select(Appointment).where(Appointment.user_id == current_user.user_id)
     result = await db.execute(query)
@@ -161,9 +160,8 @@ async def update_appointment(
         current_user: User = Depends(get_current_user)
 ):
     """
-    Оновлення запису на обслуговування
+    Update an existing appointment for car service
     """
-    # Перевірка наявності запису та прав користувача
     query = select(Appointment).where(
         (Appointment.appointment_id == appointment_id) &
         (Appointment.user_id == current_user.user_id)
@@ -177,14 +175,12 @@ async def update_appointment(
             detail="Appointment not found"
         )
 
-    # Заборона оновлення завершених або скасованих записів
     if existing_appointment.status in [AppointmentStatus.COMPLETED, AppointmentStatus.CANCELED]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot update completed or canceled appointments"
         )
 
-    # Підготовка даних для оновлення
     update_data = appointment_update.dict(exclude_unset=True)
 
     for key, value in update_data.items():
@@ -212,9 +208,8 @@ async def cancel_appointment(
         current_user: User = Depends(get_current_user)
 ):
     """
-    Скасування запису на обслуговування
+    Cancel an existing appointment
     """
-    # Перевірка наявності запису та прав користувача
     query = select(Appointment).where(
         (Appointment.appointment_id == appointment_id) &
         (Appointment.user_id == current_user.user_id)
@@ -247,17 +242,29 @@ async def cancel_appointment(
 @router.put("/{appointment_id}/assign-mechanic")
 async def assign_mechanic_to_appointment(
         appointment_id: int,
+        mechanic_id: int,
         db: AsyncSession = Depends(get_async_db),
         current_mechanic: Mechanic = Depends(get_current_mechanic)
 ):
     """
-    Призначення механіка для запису на обслуговування
+    Assign a mechanic to a specific appointment
     """
-    # Перевірка наявності запису та прав механіка
     if current_mechanic.role != MechanicRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admins can assign mechanics"
+        )
+
+    mechanic_query = select(Mechanic).where(
+        Mechanic.mechanic_id == mechanic_id
+    )
+    mechanic_result = await db.execute(mechanic_query)
+    existing_mechanic = mechanic_result.scalar_one_or_none()
+
+    if not existing_mechanic:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Mechanic not found"
         )
 
     query = select(Appointment).where(Appointment.appointment_id == appointment_id)
@@ -270,13 +277,26 @@ async def assign_mechanic_to_appointment(
             detail="Appointment not found"
         )
 
-    # Призначення механіка
-    existing_appointment.mechanic_id = current_mechanic.mechanic_id
-    existing_appointment.status = AppointmentStatus.CONFIRMED
+    if existing_appointment.status in [AppointmentStatus.COMPLETED, AppointmentStatus.CANCELED]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot assign mechanic to completed or canceled appointments"
+        )
 
-    db.add(existing_appointment)
-    await db.commit()
-    await db.refresh(existing_appointment)
+    try:
+        existing_appointment.mechanic_id = mechanic_id
+        existing_appointment.status = AppointmentStatus.CONFIRMED
+
+        db.add(existing_appointment)
+        await db.commit()
+        await db.refresh(existing_appointment)
+
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error assigning mechanic: {str(e)}"
+        )
 
     return {
         "detail": "Mechanic assigned successfully",
