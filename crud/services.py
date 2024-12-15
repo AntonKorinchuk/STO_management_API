@@ -21,6 +21,9 @@ async def create_service(
     db: AsyncSession = Depends(get_async_db),
     current_user: User = Depends(get_current_user),
 ):
+
+    """Creates a new service; only administrators can perform this action."""
+
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=403, detail="Only administrators can create services"
@@ -57,6 +60,9 @@ async def create_service(
 
 @router.get("/", response_model=List[ServiceResponse])
 async def read_services(db: AsyncSession = Depends(get_async_db)):
+
+    """Fetches a list of all available services."""
+
     query = select(Service)
     result = await db.execute(query)
     services = result.scalars().all()
@@ -99,6 +105,7 @@ async def update_service(
     db: AsyncSession = Depends(get_async_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Updates a service by its ID; only administrators can perform this action."""
 
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
@@ -148,6 +155,8 @@ async def delete_service(
     db: AsyncSession = Depends(get_async_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Deletes a service by its ID; only administrators can perform this action."""
+
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=403, detail="Only administrators can delete services"
@@ -173,6 +182,9 @@ async def search_services(
     max_price: Decimal = None,
     db: AsyncSession = Depends(get_async_db),
 ):
+
+    """Searches for services by name and/or price range."""
+
     query = select(Service)
 
     if name:

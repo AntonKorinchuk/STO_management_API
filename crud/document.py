@@ -1,5 +1,4 @@
 import os
-import uuid
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
@@ -12,16 +11,11 @@ from models.document import Document
 from models.mechanic import Mechanic, MechanicRole
 from crud.mechanic import get_current_mechanic
 
+
 UPLOAD_DIRECTORY = "uploads/documents"
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
 router = APIRouter(prefix="/documents", tags=["documents"])
-
-
-def generate_unique_filename(original_filename: str) -> str:
-    file_extension = os.path.splitext(original_filename)[1]
-    unique_filename = f"{uuid.uuid4()}{file_extension}"
-    return unique_filename
 
 
 @router.post("/upload", response_model=DocumentResponse)
@@ -31,6 +25,8 @@ async def upload_document(
     db: AsyncSession = Depends(get_async_db),
     current_mechanic: Mechanic = Depends(get_current_mechanic),
 ):
+    """Uploads a document for the current mechanic."""
+
     allowed_extensions = {".pdf", ".jpg", ".jpeg", ".png"}
     file_extension = os.path.splitext(file.filename)[1].lower()
 
@@ -70,6 +66,8 @@ async def get_mechanic_documents(
     db: AsyncSession = Depends(get_async_db),
     current_mechanic: Mechanic = Depends(get_current_mechanic),
 ):
+    """Fetches all documents for the current mechanic."""
+
     query = select(Document).where(Document.mechanic_id == current_mechanic.mechanic_id)
     result = await db.execute(query)
     documents = result.scalars().all()
@@ -90,6 +88,7 @@ async def get_all_documents(
     db: AsyncSession = Depends(get_async_db),
     current_mechanic: Mechanic = Depends(get_current_mechanic),
 ):
+    """Fetches all documents; only administrators can access."""
     if current_mechanic.role != MechanicRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
@@ -116,6 +115,7 @@ async def update_document(
     db: AsyncSession = Depends(get_async_db),
     current_mechanic: Mechanic = Depends(get_current_mechanic),
 ):
+    """Updates a document's file and type; authorized mechanics or admins only."""
     query = select(Document).where(Document.document_id == document_id)
     result = await db.execute(query)
     existing_document = result.scalar_one_or_none()
@@ -140,8 +140,7 @@ async def update_document(
     if os.path.exists(existing_document.file_path):
         os.remove(existing_document.file_path)
 
-    unique_filename = generate_unique_filename(file.filename)
-    new_file_path = os.path.join(UPLOAD_DIRECTORY, unique_filename)
+    new_file_path = os.path.join(UPLOAD_DIRECTORY, file.filename)
 
     try:
         with open(new_file_path, "wb") as buffer:
@@ -169,6 +168,7 @@ async def delete_document(
     db: AsyncSession = Depends(get_async_db),
     current_mechanic: Mechanic = Depends(get_current_mechanic),
 ):
+    """Deletes a document; authorized mechanics or admins only."""
     query = select(Document).where(Document.document_id == document_id)
     result = await db.execute(query)
     existing_document = result.scalar_one_or_none()
