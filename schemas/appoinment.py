@@ -1,14 +1,14 @@
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, ValidationError
 
 
 class AppointmentStatus(str, Enum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
     COMPLETED = "completed"
-    CANCELED = "canceled"
+    CANCELED = "cancelled"
 
 
 class AppointmentBase(BaseModel):
@@ -18,14 +18,6 @@ class AppointmentBase(BaseModel):
     mechanic_id: Optional[int] = None
     appointment_date: datetime
     status: AppointmentStatus = AppointmentStatus.PENDING
-
-    @model_validator(mode="before")
-    @classmethod
-    def validate_date(cls, values):
-        appointment_date = values.get("appointment_date")
-        if appointment_date and appointment_date <= datetime.now(timezone.utc):
-            raise ValueError("Appointment date must be in the future.")
-        return values
 
     class Config:
         from_attributes = True
@@ -47,10 +39,3 @@ class AppointmentUpdate(BaseModel):
     appointment_date: Optional[datetime] = None
     status: Optional[AppointmentStatus] = None
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_date(cls, values):
-        appointment_date = values.get("appointment_date")
-        if appointment_date and appointment_date <= datetime.now(timezone.utc):
-            raise ValueError("Appointment date must be in the future.")
-        return values
