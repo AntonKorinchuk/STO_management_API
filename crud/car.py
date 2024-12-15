@@ -112,7 +112,6 @@ async def read_car(
     if not car:
         raise HTTPException(status_code=404, detail="Car not found")
 
-    # Перевірка прав доступу
     if car.user_id != current_user.user_id and current_user.role.value != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
