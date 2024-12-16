@@ -78,7 +78,6 @@ MAIL_FROM="your_email@gmail.com"
 ```
 5. Initialize the database(:
 ```bash
-alembic revision --autogenerate -m "initial migrations"
 alembic upgrade head
 ```
 
@@ -87,6 +86,14 @@ alembic upgrade head
 ```bash
 uvicorn main:app --reload
 ```
+
+## Docker
+
+Build and start containers
+```bash
+docker-compose up --build
+````
+- Use http://127.0.0.1:8000/ or http://localhost:8000/
 
 ## API Endpoints
 
