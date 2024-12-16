@@ -65,9 +65,10 @@ Rename .env.template to .env file and populate it with the required data:
 ```
 DB_USER=db_user
 DB_PASSWORD=your_db_password
-DB_HOST=127.0.0.1
+DB_HOST=db
 DB_PORT=3306
 DB_NAME=db_name
+ROOT_DB_PASSWORD = root_db_password
 
 SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
