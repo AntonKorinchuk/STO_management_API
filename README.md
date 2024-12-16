@@ -79,6 +79,7 @@ MAIL_FROM="your_email@gmail.com"
 ```
 5. Initialize the database(:
 ```bash
+alembic revision --autogenerate -m "Initial migration"
 alembic upgrade head
 ```
 
