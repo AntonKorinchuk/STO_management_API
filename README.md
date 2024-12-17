@@ -79,7 +79,6 @@ MAIL_FROM="your_email@gmail.com"
 ```
 5. Initialize the database(:
 ```bash
-alembic revision --autogenerate -m "Initial migration"
 alembic upgrade head
 ```
 
@@ -96,6 +95,13 @@ Build and start containers
 docker-compose up --build
 ````
 - Use http://127.0.0.1:8000/ or http://localhost:8000/
+
+## Run tests
+
+```bash
+pytest
+````
+
 
 ## API Endpoints
 
