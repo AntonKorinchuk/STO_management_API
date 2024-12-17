@@ -5,8 +5,8 @@ from datetime import date
 
 
 class MechanicRoleEnum(str, Enum):
-    ADMIN = "admin"
-    MECHANIC = "mechanic"
+    ADMIN = "ADMIN"
+    MECHANIC = "MECHANIC"
 
 
 class MechanicBase(BaseModel):
