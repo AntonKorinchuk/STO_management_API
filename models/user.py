@@ -7,8 +7,8 @@ from database import Base
 
 
 class UserRole(enum.Enum):
-    ADMIN = "admin"
-    CUSTOMER = "customer"
+    ADMIN = "ADMIN"
+    CUSTOMER = "CUSTOMER"
 
 
 class User(Base):

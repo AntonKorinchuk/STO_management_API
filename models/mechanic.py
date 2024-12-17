@@ -6,8 +6,8 @@ from database import Base
 
 
 class MechanicRole(enum.Enum):
-    ADMIN = "admin"
-    MECHANIC = "mechanic"
+    ADMIN = "ADMIN"
+    MECHANIC = "MECHANIC"
 
 
 class Mechanic(Base):

@@ -5,10 +5,10 @@ import enum
 
 
 class DocumentType(enum.Enum):
-    PASSPORT = "passport"
-    TAX_ID = "tax_id"
-    DIPLOMA = "diploma"
-    EMPLOYMENT_CONTRACT = "employment_contract"
+    PASSPORT = "PASSPORT"
+    TAX_ID = "TAX_ID"
+    DIPLOMA = "DIPLOMA"
+    EMPLOYMENT_CONTRACT = "EMPLOYMENT_CONTRACT"
 
 
 class Document(Base):
